@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netcoreapp2.0;netstandard2.0</TargetFrameworks>
+    <AssemblyName>Titanosoft.AspBackgroundWorker</AssemblyName>
+    <RootNamespace>Titanosoft.AspBackgroundWorker</RootNamespace>
+    <Authors>CD Waddell</Authors>
+    <Company>Titanosoft</Company>
+    <Description>AspBackgroundWorker is a dotnet Standard 2.0 library for adding recurring background tasks to ASP.NET core startup.</Description>
+    <PackageLicenseUrl>https://raw.githubusercontent.com/cdwaddell/AspBackgroundWorker/master/LICENSE</PackageLicenseUrl>
+    <Copyright>2017 CD Waddell</Copyright>
+    <RepositoryUrl>https://github.com/cdwaddell/AspBackgroundWorker</RepositoryUrl>
+    <RepositoryType>GIT</RepositoryType>
+    <PackageProjectUrl>https://github.com/cdwaddell/AspBackgroundWorker</PackageProjectUrl>
+    <VersionPrefix>1.0.1</VersionPrefix>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+  </PropertyGroup>
+  
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Hosting.Abstractions" Version="2.0.0" />
+  </ItemGroup>
+
+</Project>
