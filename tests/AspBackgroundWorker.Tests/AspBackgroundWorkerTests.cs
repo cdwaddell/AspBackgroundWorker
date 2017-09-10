@@ -89,6 +89,7 @@ namespace AspBackgroundWorker.Tests
             Thread.Sleep(750);
 
             Assert.True(counter == 1);
+            stopSource.Cancel();
         }
 
         [Fact]
