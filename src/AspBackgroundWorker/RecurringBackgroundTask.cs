@@ -10,7 +10,7 @@ namespace Titanosoft.AspBackgroundWorker
         public readonly string Name;
         public readonly TimeSpan Interval;
 
-        public RecurringBackgroundTask(string name, Func<IServiceProvider, CancellationToken, Task> task, TimeSpan interval)
+        public RecurringBackgroundTask(string name, TimeSpan interval, Func<IServiceProvider, CancellationToken, Task> task)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
             Delegate = task ?? throw new ArgumentNullException(nameof(task));

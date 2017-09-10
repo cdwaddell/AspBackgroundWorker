@@ -36,7 +36,7 @@ namespace AspBackgroundWorker.Tests
             mockLifeTime.Setup(x => x.ApplicationStopping).Returns(stopSource.Token);
             mockLifeTime.Setup(x => x.ApplicationStarted).Returns(startSource.Token);
 
-            lifeTime.UseBackgroundTask(scopeFactory, loggerMock.Object, new RecurringBackgroundTask("NewTask", Callback, TimeSpan.FromMilliseconds(250) )
+            lifeTime.UseBackgroundTask(scopeFactory, loggerMock.Object, new RecurringBackgroundTask("NewTask", TimeSpan.FromMilliseconds(250), Callback)
             {
                 RunImmediately = true
             });
