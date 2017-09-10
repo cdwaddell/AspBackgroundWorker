@@ -25,13 +25,14 @@ public void Configure(IApplicationBuilder app, ...IServiceScopeFactory factory, 
 4. Configure your background job, by adding something like this to your confguration section (in Startup.cs):
 
 ```csharp
-applicationLifetime.UseBackgroundTask(factory, loggerFactory.CreateLogger<MyLoggerClass>(), new RecurringBackgroundTask
-{
-    Delegate = (serviceProvider, cancellationToken) => {
+applicationLifetime.UseBackgroundTask(factory, loggerFactory.CreateLogger<MyLoggerClass>(), new RecurringBackgroundTask(
+    "NewTask",  //A unique name
+    new TimeSpan(0,1,0), //Run every minute, 
+    (serviceProvider, cancellationToken) => {
         //Your code that uses the service proveder and cancels when the cancellationtoken says
-    }},
-    Interval = new TimeSpan(0,1,0), //Run every minute
-    Name = "RefreshCache", //A unique name
+    }}
+)
+{
     RunImmediately = true //Run now or wait until the first scheduled instance
 })
 ```
