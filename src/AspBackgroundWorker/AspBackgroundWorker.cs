@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -22,9 +23,6 @@ namespace Titanosoft.AspBackgroundWorker
         /// <param name="backgroundTask"></param>
         public static void UseBackgroundTask(this IApplicationLifetime lifetime, IServiceScopeFactory scopeFactory, ILogger logger, RecurringBackgroundTask backgroundTask)
         {
-            if (string.IsNullOrWhiteSpace(backgroundTask.Name))
-                backgroundTask.Name = Guid.NewGuid().ToString();
-
             MontiorLookup.Add(backgroundTask.Name, new JobMonitor());
 
             async void Callback(object self)
@@ -33,7 +31,10 @@ namespace Titanosoft.AspBackgroundWorker
 
                 //Do not allow a new instance to start if the last one hasn't finished
                 if (monitor.Increment() != 1)
+                {
+                    monitor.End();
                     return;
+                }
 
                 try
                 {
@@ -57,8 +58,6 @@ namespace Titanosoft.AspBackgroundWorker
                         catch (Exception exception)
                         {
                             logger.LogError(0, exception, "Uncaught Exception");
-
-                            monitor.Dispose();
                         }
                     }
                 }
@@ -67,7 +66,7 @@ namespace Titanosoft.AspBackgroundWorker
                     monitor.End();
                 }
             }
-
+            
             lifetime.ApplicationStarted.Register(() =>
             {
                 var monitor = MontiorLookup[backgroundTask.Name];
@@ -75,7 +74,7 @@ namespace Titanosoft.AspBackgroundWorker
 
                 if (backgroundTask.RunImmediately)
                 {
-                    Callback((TimerCallback)Callback);
+                    Task.Run(() => Callback((TimerCallback)Callback), lifetime.ApplicationStopping);
                 }
 
                 lifetime.ApplicationStopping.Register(() => monitor?.Dispose());

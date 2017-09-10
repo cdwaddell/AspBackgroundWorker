@@ -10,7 +10,7 @@ namespace Titanosoft.AspBackgroundWorker
             _entered = 0;
         }
 
-        public Timer Timer;
+        public Timer Timer { get; private set; }
         private int _entered;
 
         public int Increment()
@@ -20,7 +20,7 @@ namespace Titanosoft.AspBackgroundWorker
 
         public void End()
         {
-            Interlocked.Exchange(ref _entered, 0);
+            Interlocked.Decrement(ref _entered);
         }
 
         private static TimeSpan TimeUntilNext(TimeSpan interval)

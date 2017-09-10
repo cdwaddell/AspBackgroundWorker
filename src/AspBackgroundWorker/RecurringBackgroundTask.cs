@@ -4,14 +4,24 @@ using System.Threading.Tasks;
 
 namespace Titanosoft.AspBackgroundWorker
 {
-    public struct RecurringBackgroundTask
+    public class RecurringBackgroundTask
     {
-        public string Name { get; set; }
+        public readonly Func<IServiceProvider, CancellationToken, Task> Delegate;
+        public readonly string Name;
+        public readonly TimeSpan Interval;
+
+        public RecurringBackgroundTask(string name, Func<IServiceProvider, CancellationToken, Task> task, TimeSpan interval)
+        {
+            Name = name ?? throw new ArgumentNullException(nameof(name));
+            Delegate = task ?? throw new ArgumentNullException(nameof(task));
+
+            if(interval.TotalMilliseconds < 250)
+                throw new ArgumentOutOfRangeException(nameof(interval), "Interval is too small");
+
+            Interval = interval;
+        }
 
         public bool RunImmediately { get; set; }
-
-        public TimeSpan Interval { get; set; }
-
-        public Func<IServiceProvider, CancellationToken, Task> Delegate { get; set; }
+        
     }
 }
