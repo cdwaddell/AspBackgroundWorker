@@ -84,10 +84,22 @@ namespace Titanosoft.AspBackgroundWorker
                 lifetime.ApplicationStopping.Register(() =>
                 {
                     if (monitor == null) return;
-                    while (monitor.IsRunning) Thread.Sleep(100);
+                    var totalSleep = 0;
+                    while (monitor.IsRunning)
+                    {
+                        Thread.Sleep(100);
+                        totalSleep += 100;
+                        if (totalSleep <= 5000) continue;
+
+                        monitor.Dispose();
+                        var ex = new TaskCanceledException("Cancellation event was not respected.");
+                        logger.LogCritical(0, ex, "The maximum threshold was exceeded for waiting on a background task to complete");
+                        throw ex;
+                    }
                     monitor.Dispose();
                 });
             });
         }
     }
 }
+

@@ -37,6 +37,7 @@ namespace Titanosoft.AspBackgroundWorker
 
         public void Dispose()
         {
+            if (IsRunning) End();
             Timer?.Dispose();
             Timer = null;
         }
