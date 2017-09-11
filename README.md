@@ -16,20 +16,14 @@ PM> Install-Package Titanosoft.AspBackgroundWorker
 
 2. Configure logging however you wish. Read more about logging here: [Logging in ASP.Net Core](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/logging?tabs=aspnetcore2x)
 
-3. Modify your confguration section to accept the following parameters (in Startup.cs):
+3. Configure your background job, by adding something like this to your confguration section (in Startup.cs):
 
 ```csharp
-public void Configure(IApplicationBuilder app, ...IServiceScopeFactory factory, IApplicationLifetime applicationLifetime, ILoggerFactory loggerFactory,...)
-```
-
-4. Configure your background job, by adding something like this to your confguration section (in Startup.cs):
-
-```csharp
-applicationLifetime.UseBackgroundTask(factory, loggerFactory.CreateLogger<MyLoggerClass>(), new RecurringBackgroundTask(
+app.UseBackgroundTask(new RecurringBackgroundTask(
     "NewTask",  //A unique name
     new TimeSpan(0,1,0), //Run every minute, 
     (serviceProvider, cancellationToken) => {
-        //Your code that uses the service proveder and cancels when the cancellationtoken says
+        //Your code that uses the service proveder and cancels when the cancellationtoken is cancelled
     }}
 )
 {

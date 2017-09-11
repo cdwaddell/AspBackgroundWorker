@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -17,12 +18,15 @@ namespace Titanosoft.AspBackgroundWorker
         /// <summary>
         /// Add a background task that is tied to the application lifetime
         /// </summary>
-        /// <param name="lifetime">The application lifetime controlling this task</param>
-        /// <param name="scopeFactory"></param>
-        /// <param name="logger"></param>
-        /// <param name="backgroundTask"></param>
-        public static void UseBackgroundTask(this IApplicationLifetime lifetime, IServiceScopeFactory scopeFactory, ILogger logger, RecurringBackgroundTask backgroundTask)
+        /// <param name="builder">The application builder</param>
+        /// <param name="backgroundTask">The task definition to run</param>
+        public static void UseBackgroundTask(this IApplicationBuilder builder, RecurringBackgroundTask backgroundTask)
         {
+            var scopeFactory = builder.ApplicationServices.GetService<IServiceScopeFactory>();
+            var lifetime = builder.ApplicationServices.GetService<IApplicationLifetime>();
+            var logFactory = builder.ApplicationServices.GetService<ILoggerFactory>();
+            var logger = logFactory?.CreateLogger<RecurringBackgroundTask>();
+
             MontiorLookup.Add(backgroundTask.Name, new JobMonitor());
 
             async void Callback(object self)
@@ -38,26 +42,26 @@ namespace Titanosoft.AspBackgroundWorker
 
                 try
                 {
-                    using (logger.BeginScope("{TaskName}", backgroundTask.Name))
+                    using (logger?.BeginScope("{TaskName}", backgroundTask.Name))
                     {
                         try
                         {
-                            logger.LogDebug("Beginning execution");
+                            logger?.LogDebug("Beginning execution");
 
                             using (var scope = scopeFactory.CreateScope())
                             {
                                 await backgroundTask.Delegate(scope.ServiceProvider, lifetime.ApplicationStopping);
                             }
 
-                            logger.LogDebug("Completed execution");
+                            logger?.LogDebug("Completed execution");
                         }
                         catch (OperationCanceledException exception)
                         {
-                            logger.LogDebug(0, exception, "Caught OperationCanceledException");
+                            logger?.LogDebug(0, exception, "Caught OperationCanceledException");
                         }
                         catch (Exception exception)
                         {
-                            logger.LogError(0, exception, "Uncaught Exception");
+                            logger?.LogError(0, exception, "Uncaught Exception");
                         }
                     }
                 }
