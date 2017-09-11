@@ -23,6 +23,8 @@ namespace Titanosoft.AspBackgroundWorker
             Interlocked.Decrement(ref _entered);
         }
 
+        public bool IsRunning =>_entered == 0;
+
         private static TimeSpan TimeUntilNext(TimeSpan interval)
         {
             return new DateTime((DateTime.Now.Ticks + interval.Ticks - 1) / interval.Ticks * interval.Ticks) - DateTime.Now;

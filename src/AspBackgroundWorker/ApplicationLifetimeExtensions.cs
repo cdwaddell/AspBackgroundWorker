@@ -81,7 +81,12 @@ namespace Titanosoft.AspBackgroundWorker
                     Task.Run(() => Callback((TimerCallback)Callback), lifetime.ApplicationStopping);
                 }
 
-                lifetime.ApplicationStopping.Register(() => monitor?.Dispose());
+                lifetime.ApplicationStopping.Register(() =>
+                {
+                    if (monitor == null) return;
+                    while (monitor.IsRunning) Thread.Sleep(100);
+                    monitor.Dispose();
+                });
             });
         }
     }

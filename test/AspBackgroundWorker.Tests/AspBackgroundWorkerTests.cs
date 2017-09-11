@@ -1,9 +1,11 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Titanosoft.AspBackgroundWorker;
@@ -17,57 +19,40 @@ namespace AspBackgroundWorker.Tests
         [Trait("Category", "Unit")]
         public void TestMultipleCalls()
         {
-            var mockLifeTime = new Mock<IApplicationLifetime>();
-
-            var server = new TestServer(new WebHostBuilder()
-                .UseStartup<Startup>()
-                .UseEnvironment("IntegrationTest"));
-
-            var scopeFactory = server.Host.Services.GetService<IServiceScopeFactory>();
-            var loggerMock = new Mock<ILogger>();
-            var lifeTime = mockLifeTime.Object;
-
             var counter = 0;
-            Task Callback(IServiceProvider provider, CancellationToken token) 
+
+            Task Callback(IServiceProvider provider, CancellationToken token)
                 => Task.FromResult(counter++);
-
-            var stopSource = new CancellationTokenSource();
-            var startSource = new CancellationTokenSource();
-            mockLifeTime.Setup(x => x.ApplicationStopping).Returns(stopSource.Token);
-            mockLifeTime.Setup(x => x.ApplicationStarted).Returns(startSource.Token);
-
-            lifeTime.UseBackgroundTask(scopeFactory, loggerMock.Object, new RecurringBackgroundTask(
-                "TestMultipleCalls", 
-                TimeSpan.FromMilliseconds(250), 
-                Callback
-            )
+            
+            using (var server = new TestServer(new WebHostBuilder()
+                .Configure(builder =>
+                {
+                    builder.UseBackgroundTask(new RecurringBackgroundTask(
+                        "TestMultipleCalls",
+                        TimeSpan.FromMilliseconds(250),
+                        Callback
+                    )
+                    {
+                        RunImmediately = true
+                    });
+                })
+                .UseEnvironment("IntegrationTest")))
             {
-                RunImmediately = true
-            });
-            startSource.Cancel();
 
-            Thread.Sleep(1500);
+                server.CreateClient();
 
-            Assert.True(counter > 1);
+                Thread.Sleep(1500);
 
-            stopSource.Cancel();
+                Assert.True(counter > 1);
+            }
         }
 
         [Fact]
         [Trait("Category", "Unit")]
         public void TestSingleCall()
         {
-            var mockLifeTime = new Mock<IApplicationLifetime>();
-
-            var server = new TestServer(new WebHostBuilder()
-                .UseStartup<Startup>()
-                .UseEnvironment("UnitTest"));
-
-            var scopeFactory = server.Host.Services.GetService<IServiceScopeFactory>();
-            var loggerMock = new Mock<ILogger>();
-            var lifeTime = mockLifeTime.Object;
-
             var counter = 0;
+
             Task Callback(IServiceProvider provider, CancellationToken token)
             {
                 counter++;
@@ -75,38 +60,33 @@ namespace AspBackgroundWorker.Tests
                 return Task.CompletedTask;
             }
 
-            var stopSource = new CancellationTokenSource();
-            var startSource = new CancellationTokenSource();
-            mockLifeTime.Setup(x => x.ApplicationStopping).Returns(stopSource.Token);
-            mockLifeTime.Setup(x => x.ApplicationStarted).Returns(startSource.Token);
-
-            lifeTime.UseBackgroundTask(scopeFactory, loggerMock.Object, new RecurringBackgroundTask("TestSingleCall", TimeSpan.FromMilliseconds(250), Callback)
+            using (var server = new TestServer(new WebHostBuilder()
+                .Configure(builder =>
+                {
+                    builder.UseBackgroundTask(new RecurringBackgroundTask(
+                        "TestSingleCall",
+                        TimeSpan.FromMilliseconds(250),
+                        Callback
+                    )
+                    {
+                        RunImmediately = true
+                    });
+                })
+                .UseEnvironment("IntegrationTest")))
             {
-                RunImmediately = true
-            });
-            startSource.Cancel();
 
-            Thread.Sleep(750);
+                server.CreateClient();
 
-            Assert.True(counter == 1);
-            stopSource.Cancel();
+                Thread.Sleep(750);
+
+                Assert.Equal(1, counter);
+            }
         }
 
         [Fact]
         [Trait("Category", "Unit")]
         public void TestDispose()
         {
-            var mockLifeTime = new Mock<IApplicationLifetime>();
-
-            var server = new TestServer(new WebHostBuilder()
-                .UseStartup<Startup>()
-                .UseEnvironment("UnitTest"));
-
-            var scopeFactory = server.Host.Services.GetService<IServiceScopeFactory>();
-            var loggerMock = new Mock<ILogger>();
-            
-            var lifeTime = mockLifeTime.Object;
-            
             Task Callback(IServiceProvider provider, CancellationToken token)
             {
                 while (!token.IsCancellationRequested)
@@ -116,23 +96,34 @@ namespace AspBackgroundWorker.Tests
                 token.ThrowIfCancellationRequested();
                 return Task.CompletedTask;
             }
+            var loggerMock = new Mock<ILogger>();
+            using (var server = new TestServer(new WebHostBuilder()
+                .ConfigureServices(collection =>
+                {
+                    var loggerService = new Mock<ILoggerFactory>();
+                    loggerService.Setup(c => c.CreateLogger(It.IsAny<string>()))
+                        .Returns(loggerMock.Object);
 
-            var stopSource = new CancellationTokenSource();
-            var startSource = new CancellationTokenSource();
-            mockLifeTime.Setup(x => x.ApplicationStopping).Returns(stopSource.Token);
-            mockLifeTime.Setup(x => x.ApplicationStarted).Returns(startSource.Token);
-
-            lifeTime.UseBackgroundTask(scopeFactory, loggerMock.Object, new RecurringBackgroundTask("TestDispose", TimeSpan.FromMilliseconds(250), Callback)
+                    collection.AddSingleton(loggerService.Object);
+                })
+                .Configure(builder =>
+                {
+                    builder.UseBackgroundTask(new RecurringBackgroundTask(
+                        "TestSingleCall",
+                        TimeSpan.FromMilliseconds(250),
+                        Callback
+                    )
+                    {
+                        RunImmediately = true
+                    });
+                })
+                .UseEnvironment("IntegrationTest")))
             {
-                RunImmediately = true
-            });
-            startSource.Cancel();
-            stopSource.Cancel();
 
-            Thread.Sleep(100);
-
+                server.CreateClient();
+            }
             loggerMock.Verify(x => x.Log(It.Is<LogLevel>(l => l == LogLevel.Debug), It.IsAny<EventId>(),
-                It.IsAny<object>(), It.Is<Exception>(e => e != null && e.GetType() == typeof(OperationCanceledException)), It.IsAny<Func<object, Exception, string>>()),
+                    It.IsAny<object>(), It.Is<Exception>(e => e != null && e.GetType() == typeof(OperationCanceledException)), It.IsAny<Func<object, Exception, string>>()),
                 Times.Once());
         }
     }
