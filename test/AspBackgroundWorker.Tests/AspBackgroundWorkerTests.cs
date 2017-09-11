@@ -1,13 +1,11 @@
-using System;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Moq;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using Titanosoft.AspBackgroundWorker;
 using Xunit;
 
@@ -109,7 +107,7 @@ namespace AspBackgroundWorker.Tests
                 .Configure(builder =>
                 {
                     builder.UseBackgroundTask(new RecurringBackgroundTask(
-                        "TestSingleCall",
+                        "TestDispose",
                         TimeSpan.FromMilliseconds(250),
                         Callback
                     )
